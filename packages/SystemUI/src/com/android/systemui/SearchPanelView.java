@@ -76,6 +76,8 @@ import android.view.ViewTreeObserver.OnPreDrawListener;
 import android.widget.FrameLayout;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
+import com.android.internal.util.aokp.GlowPadTorchHelper;
+import com.android.internal.widget.LockPatternUtils;
 
 import com.android.internal.widget.multiwaveview.GlowPadView;
 import com.android.internal.widget.multiwaveview.GlowPadView.OnTriggerListener;
@@ -111,9 +113,10 @@ public class SearchPanelView extends FrameLayout implements
     private View mSearchTargetsContainer;
     private GlowPadView mGlowPadView;
     private IWindowManager mWm;
-
+    private KeyguardManager mKeyguardManager;
     private SlimTarget mSlimTarget;
 
+    private LockPatternUtils mLockPatternUtils;
     private PackageManager mPackageManager;
     private Resources mResources;
     private ContentResolver mContentResolver;
@@ -124,6 +127,8 @@ public class SearchPanelView extends FrameLayout implements
     private final static String mNavRingConfigDefault = "**assist**|**null**|empty";
     private int startPosOffset;
 
+    private int mGlowTorch;
+    private boolean mGlowTorchOn;
     private int mNavRingAmount;
     private boolean mLongPress;
     private boolean mSearchPanelLock;
@@ -146,9 +151,14 @@ public class SearchPanelView extends FrameLayout implements
         mPackageManager = mContext.getPackageManager();
         mResources = mContext.getResources();
 
+        mLockPatternUtils = new LockPatternUtils(mContext);
+        mKeyguardManager =
+                (KeyguardManager) mContext.getSystemService(Context.KEYGUARD_SERVICE);
+
         mContentResolver = mContext.getContentResolver();
         mSlimTarget = new SlimTarget(context);
         mObserver = new SettingsObserver(new Handler());
+	mGlowTorchOn = false;
     }
 
     private class H extends Handler {
@@ -177,9 +187,21 @@ public class SearchPanelView extends FrameLayout implements
 
         public void onGrabbed(View v, int handle) {
             mSearchPanelLock = false;
+            if (mGlowTorch == 2) {
+                //faceUnlock uses camera so we can't use it - let's not try.
+                boolean faceUnlock = mLockPatternUtils.usingBiometricWeak();
+                boolean screenLocked =
+                        mKeyguardManager != null && mKeyguardManager.isKeyguardLocked();
+
+                if (screenLocked && !faceUnlock) {
+                    mHandler.removeCallbacks(checkTorch);
+                    mHandler.postDelayed(startTorch, GlowPadTorchHelper.TORCH_TIMEOUT);
+                }
+            }
         }
 
         public void onReleased(View v, int handle) {
+            fireTorch();
         }
 
         public void onTargetChange(View v, final int target) {
@@ -187,6 +209,7 @@ public class SearchPanelView extends FrameLayout implements
                 mHandler.removeCallbacks(SetLongPress);
                 mLongPress = false;
             } else {
+		fireTorch();
                 if (longList.get(target) == null || longList.get(target).equals("") || longList.get(target).equals("none")) {
                 //pretend like nothing happened
                 } else {
@@ -227,6 +250,32 @@ public class SearchPanelView extends FrameLayout implements
             }
         }, SEARCH_PANEL_HOLD_DURATION);
     }
+
+    private void fireTorch() {
+        mHandler.removeCallbacks(startTorch);
+        if (mGlowTorch == 2 && mGlowTorchOn) {
+            mGlowTorchOn = false;
+            GlowPadTorchHelper.killTorch(mContext);
+            mHandler.postDelayed(checkTorch, GlowPadTorchHelper.TORCH_CHECK);
+        }
+    }
+
+    final Runnable startTorch = new Runnable () {
+        public void run() {
+            if (!mGlowTorchOn) {
+                mGlowTorchOn = GlowPadTorchHelper.startTorch(mContext);
+            }
+        }
+    };
+
+    final Runnable checkTorch = new Runnable () {
+        public void run() {
+            if (GlowPadTorchHelper.torchActive(mContext)) {
+                GlowPadTorchHelper.torchOff(mContext, true);
+            }
+        }
+    };
+
 
     @Override
     protected void onFinishInflate() {
@@ -604,6 +653,8 @@ public class SearchPanelView extends FrameLayout implements
                     Settings.System.SYSTEMUI_NAVRING_LONG_ENABLE), false, this);
             resolver.registerContentObserver(Settings.System.getUriFor(
                     Settings.System.NAVIGATION_BAR_CAN_MOVE), false, this);
+            resolver.registerContentObserver(Settings.System.getUriFor(
+                    Settings.System.LOCKSCREEN_GLOW_TORCH), false, this);
         }
 
         void unobserve() {
@@ -621,6 +672,9 @@ public class SearchPanelView extends FrameLayout implements
 
         boolean longpressEnabled = Settings.System.getInt(mContext.getContentResolver(),
                 Settings.System.SYSTEMUI_NAVRING_LONG_ENABLE, 0) == 1;
+
+        mGlowTorch = (Settings.System.getInt(mContext.getContentResolver(),
+                Settings.System.LOCKSCREEN_GLOW_TORCH, 0));
 
         // init vars to fill with them later the navring config values
         int counter = 0;

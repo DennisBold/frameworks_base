@@ -298,13 +298,13 @@ public class PhoneWindowManager implements WindowManagerPolicy {
 
     // Vibrator pattern for haptic feedback of virtual key press.
     long[] mVirtualKeyVibePattern;
-    
+
     // Vibrator pattern for a short vibration.
     long[] mKeyboardTapVibePattern;
 
     // Vibrator pattern for haptic feedback during boot when safe mode is disabled.
     long[] mSafeModeDisabledVibePattern;
-    
+
     // Vibrator pattern for haptic feedback during boot when safe mode is enabled.
     long[] mSafeModeEnabledVibePattern;
 
@@ -486,7 +486,7 @@ public class PhoneWindowManager implements WindowManagerPolicy {
     static final Rect mTmpContentFrame = new Rect();
     static final Rect mTmpVisibleFrame = new Rect();
     static final Rect mTmpNavigationFrame = new Rect();
-    
+
     WindowState mTopFullscreenOpaqueWindowState;
     boolean mTopIsFullscreen;
     boolean mForceStatusBar;
@@ -733,12 +733,12 @@ public class PhoneWindowManager implements WindowManagerPolicy {
             updateRotation(false);
         }
     }
-    
+
     class MyOrientationListener extends WindowOrientationListener {
         MyOrientationListener(Context context) {
             super(context);
         }
-        
+
         @Override
         public void onProposedRotationChanged(int rotation) {
             if (localLOGV) Log.v(TAG, "onProposedRotationChanged, rotation=" + rotation);
@@ -792,7 +792,6 @@ public class PhoneWindowManager implements WindowManagerPolicy {
         }
         return true;
     }
-    
     /*
      * Various use cases for invoking this function
      * screen turning off, should always disable listeners if already enabled

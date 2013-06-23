@@ -3211,6 +3211,19 @@ public final class Settings {
          */
         public static final String DISABLE_FULLSCREEN_KEYBOARD = "disable_fullscreen_keyboard";
 
+       /**
+         * AOSP Lockscreen Handles, should default to 1
+	 * The Slim handles should be disabled by default
+         * @hide
+         */
+        public static final String AOSP_HANDLE = "aosp_handle";
+
+       /**
+         * HALO enabled, should default to 0 (HALO is disabled)
+         * @hide
+         */
+        public static final String HALO_ENABLED = "halo_enabled";
+
         /**
          * HALO, should default to 0 (no, do not show)
          * @hide
@@ -3304,6 +3317,12 @@ public final class Settings {
          * @hide
          */
         public static final String SCREEN_LOCK_SLIDE_SCREENOFF_DELAY = "screen_lock_slide_screenoff_delay";
+
+	/**
+         *
+         * @hide
+         */
+        public static final String LOCKSCREEN_GLOW_TORCH = "lockscreen_glow_torch";
 
         /**
          * Whether to use the custom quick unlock screen control
