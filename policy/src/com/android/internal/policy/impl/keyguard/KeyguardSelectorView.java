@@ -19,12 +19,17 @@ import java.io.File;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 
+import android.text.TextUtils;
 import android.animation.ObjectAnimator;
 import android.app.SearchManager;
 import android.app.admin.DevicePolicyManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.BroadcastReceiver;
+import android.content.ContentResolver;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
@@ -47,17 +52,23 @@ import android.graphics.drawable.InsetDrawable;
 import android.graphics.drawable.LayerDrawable;
 import android.graphics.drawable.StateListDrawable;
 import android.os.UserHandle;
+import android.os.Handler;
+import android.os.Message;
 import android.provider.Settings;
+import android.provider.Settings.System;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.util.Slog;
 import android.util.TypedValue;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.Gravity;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
-import com.android.internal.util.aokp.GlowPadTorchHelper;
+
 import com.android.internal.view.RotationPolicy;
+import com.android.internal.util.aokp.GlowPadTorchHelper;
+import com.android.internal.widget.LockPatternUtils;
 import com.android.internal.telephony.IccCardConstants.State;
 import com.android.internal.widget.LockPatternUtils;
 import com.android.internal.widget.multiwaveview.GlowPadView;
@@ -79,16 +90,31 @@ public class KeyguardSelectorView extends LinearLayout implements KeyguardSecuri
     private int mGlowTorch;
     private boolean mUserRotation;
     private boolean mGlowTorchOn;
+    private boolean mGlowPadLock;
+    private boolean mBoolLongPress;
+    private int mTarget;
     private boolean mIsBouncing;
     private boolean mCameraDisabled;
     private boolean mSearchDisabled;
     private LockPatternUtils mLockPatternUtils;
     private SecurityMessageDisplay mSecurityMessageDisplay;
     private Drawable mBouncerFrame;
+    private String[] targetActivities = new String[8];
+    private String[] longActivities = new String[8];
+    private String[] customIcons = new String[8];
     private String[] mStoredTargets;
     private int mTargetOffset;
     private boolean mIsScreenLarge;
     private int mCreationOrientation;
+    private boolean mLongPress = false;
+
+    private class H extends Handler {
+        public void handleMessage(Message m) {
+            switch (m.what) {
+            }
+        }
+    }
+    private H mHandler = new H();
 
     OnTriggerListener mOnTriggerListener = new OnTriggerListener() {
 
@@ -178,7 +204,7 @@ public class KeyguardSelectorView extends LinearLayout implements KeyguardSecuri
 		}
 		else {
 			fireTorch();
-	                if (mBoolLongPress && !TextUtils.isEmpty(longActivities[target]) && !longActivities[target].equals(AwesomeConstant.ACTION_NULL.value())) {
+	                if (mBoolLongPress && !TextUtils.isEmpty(longActivities[target])) {
         	            mTarget = target;
                 	    mHandler.postDelayed(SetLongPress, ViewConfiguration.getLongPressTimeout());
 	                }
@@ -234,9 +260,8 @@ public class KeyguardSelectorView extends LinearLayout implements KeyguardSecuri
     @Override
     protected void onFinishInflate() {
         super.onFinishInflate();
-
+	ContentResolver cr = mContext.getContentResolver();
         Resources res = getResources();
-
         LinearLayout glowPadContainer = (LinearLayout) findViewById(R.id.keyguard_glow_pad_container);
         glowPadContainer.bringToFront();
         final boolean isLandscape = res.getSystem().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
@@ -274,9 +299,11 @@ public class KeyguardSelectorView extends LinearLayout implements KeyguardSecuri
         mGlowPadView = (GlowPadView) findViewById(R.id.glow_pad_view);
         mGlowPadView.setOnTriggerListener(mOnTriggerListener);
         updateTargets();
+
         mGlowTorch = Settings.System.getInt(cr,
-                Settings.System.LOCKSCREEN_GLOW_TORCH, 0);
+		 Settings.System.LOCKSCREEN_GLOW_TORCH, 0);
         mGlowTorchOn = false;
+
         mSecurityMessageDisplay = new KeyguardMessageArea.Helper(this);
         View bouncerFrameView = findViewById(R.id.keyguard_selector_view_frame);
         mBouncerFrame = bouncerFrameView.getBackground();

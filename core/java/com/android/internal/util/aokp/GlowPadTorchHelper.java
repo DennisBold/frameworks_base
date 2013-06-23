@@ -24,6 +24,7 @@ import android.os.UserHandle;
 import android.provider.Settings;
 import android.util.Log;
 import android.view.ViewConfiguration;
+import android.provider.Settings.System;
 
 public class GlowPadTorchHelper {
 
@@ -32,13 +33,11 @@ public class GlowPadTorchHelper {
     public final static int TORCH_TIMEOUT = ViewConfiguration.getLongPressTimeout(); //longpress glowpad torch
     public final static int TORCH_CHECK = 2000; //make sure torch turned off
 
-
     private GlowPadTorchHelper() {
     }
 
     public static boolean torchActive(Context mContext) {
-        boolean torchActive = Settings.System.getBoolean(mContext.getContentResolver(),
-                Settings.System.TORCH_STATE, false);
+        boolean torchActive = Settings.System.getBoolean(mContext.getContentResolver(), Settings.System.TORCH_STATE, false);
         return torchActive;
     }
 
